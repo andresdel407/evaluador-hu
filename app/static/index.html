@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evaluador de historias de usuario</title>
+<style>
+  :root {
+    --fondo: #0b1418;
+    --panel: #121f26;
+    --panel-alto: #16262e;
+    --borde: #22333c;
+    --borde-claro: #2e434e;
+    --texto: #dbe4e8;
+    --tenue: #7d919b;
+    --teal: #16a5ad;
+    --mint: #2fd4b5;
+    --ambar: #d99a2b;
+    --rojo: #e0645c;
+    --radio: 10px;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: clamp(16px, 4vw, 36px) clamp(14px, 4vw, 24px);
+    background: var(--fondo); color: var(--texto);
+    font: 15px/1.55 ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* --- Cabecera --------------------------------------------------------- */
+  header { border-bottom: 1px solid var(--borde); padding-bottom: 18px; margin-bottom: 22px; }
+  .eyebrow {
+    font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--mint);
+    margin: 0 0 8px;
+  }
+  h1 {
+    margin: 0 0 8px; font-weight: 650; color: #fff; letter-spacing: -.01em;
+    font-size: clamp(20px, 4.5vw, 26px);
+  }
+  header p { margin: 0; color: var(--tenue); max-width: 62ch; font-size: 14px; }
+
+  /* --- Rejilla principal ------------------------------------------------ */
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 940px) { .cols { grid-template-columns: 1fr; gap: 18px; } }
+  @media (min-width: 941px) { .panel-entrada { position: sticky; top: 24px; } }
+
+  /* --- Smells ----------------------------------------------------------- */
+.unidad{border-top:1px solid var(--linea);padding:9px 0}
+.unidad:first-child{border-top:0}
+.unidad .cab2{display:flex;gap:8px;align-items:baseline;justify-content:space-between}
+.unidad .txt{font-size:12.5px;color:var(--tenue);flex:1;min-width:0}
+.unidad .nums{font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums}
+.unidad .nums b{font-weight:600}
+.hall{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.hall span{font-size:11px;padding:1px 6px;border-radius:9px;background:#f1f1f1;border:1px solid var(--linea)}
+.hall span.nocuenta{background:transparent;color:var(--tenue);border-style:dashed;text-decoration:line-through;text-decoration-color:var(--linea)}
+.delta{font-size:12px;margin-left:6px}
+.peor{color:#b3261e}.mejor{color:#1a7f37}
+.terms{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.terms code{font-size:11.5px;padding:1px 6px;border-radius:4px;background:#fff4f4;border:1px solid #f0c9c9}
+.terms.quit code{background:#f6f6f6;border-color:var(--linea)}
+
+/* --- Ejemplos --------------------------------------------------------- */
+  .presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  @media (max-width: 520px) { .presets { grid-template-columns: 1fr; } }
+  .presets button {
+    text-align: left; cursor: pointer; width: 100%;
+    background: var(--panel); border: 1px solid var(--borde);
+    border-radius: var(--radio); padding: 10px 12px; color: var(--texto);
+    min-height: 44px;
+  }
+  .presets button:hover { border-color: var(--teal); }
+  .presets button[aria-pressed="true"] { border-color: var(--teal); background: var(--panel-alto); }
+  .presets b { display: block; font-size: 12.5px; font-weight: 600; }
+  .presets span { display: block; font-size: 11.5px; color: var(--tenue); }
+
+  /* --- Formulario ------------------------------------------------------- */
+  label {
+    display: block; margin-bottom: 6px;
+    font: 600 10px/1 ui-monospace, Menlo, monospace;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--tenue);
+  }
+  textarea {
+    width: 100%; background: var(--panel); color: var(--texto);
+    border: 1px solid var(--borde); border-radius: var(--radio); padding: 12px;
+    font: 16px/1.6 ui-monospace, Menlo, monospace; resize: vertical;
+  }
+  @media (min-width: 700px) { textarea { font-size: 13px; } }
+  .campo { margin-bottom: var(--gap); }
+  #run {
+    width: 100%; cursor: pointer; border: 0; border-radius: var(--radio);
+    background: var(--teal); color: #04191b; font-size: 15px; font-weight: 650;
+    padding: 13px; min-height: 48px;
+  }
+  #run:hover:not(:disabled) { background: #18b8c1; }
+  #run:disabled { background: #1c2c34; color: var(--tenue); cursor: default; }
+  :focus-visible { outline: 2px solid var(--mint); outline-offset: 2px; }
+  textarea:focus { outline: none; border-color: var(--teal); }
+  textarea:focus-visible { outline: 2px solid var(--mint); outline-offset: 1px; }
+
+  /* --- Carriles --------------------------------------------------------- */
+  .lanes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+  @media (max-width: 620px) { .lanes { grid-template-columns: 1fr; } }
+  .lane {
+    border: 1px solid var(--borde); border-radius: var(--radio); padding: 10px 12px;
+    opacity: .3; background: var(--panel);
+  }
+  .lane.on { opacity: 1; background: var(--panel-alto); }
+  .lane b { display: block; font-size: 13px; margin-bottom: 3px; }
+  .lane span { font-size: 11.5px; color: var(--tenue); line-height: 1.4; }
+  .lane.redaccion.on { border-color: var(--ambar); }
+  .lane.redaccion.on b { color: var(--ambar); }
+  .lane.informacion.on { border-color: var(--rojo); }
+  .lane.informacion.on b { color: var(--rojo); }
+  .lane.aprobado.on { border-color: var(--mint); }
+  .lane.aprobado.on b { color: var(--mint); }
+  @media (max-width: 620px) { .lane:not(.on) { display: none; } }
+
+  /* --- Bloques de resultado --------------------------------------------- */
+  .bloque {
+    border: 1px solid var(--borde); border-left: 3px solid var(--borde-claro);
+    border-radius: var(--radio); background: var(--panel);
+    padding: 14px; margin-bottom: var(--gap);
+  }
+  .bloque.g1 { border-left-color: var(--tenue); }
+  .bloque.g2 { border-left-color: var(--teal); }
+  .bloque .cab { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 2px; }
+  .bloque h3 {
+    margin: 0; font: 600 10px/1.3 ui-monospace, Menlo, monospace;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--teal);
+  }
+  .bloque.g1 h3 { color: var(--tenue); }
+  .chip {
+    font: 600 9.5px/1 ui-monospace, Menlo, monospace; letter-spacing: .1em;
+    text-transform: uppercase; padding: 4px 7px; border-radius: 99px;
+    border: 1px solid var(--borde-claro); color: var(--tenue); white-space: nowrap;
+  }
+  .bloque.g2 .chip { border-color: var(--teal); color: var(--teal); }
+  .bloque .sub { margin: 4px 0 10px; font-size: 11.5px; color: var(--tenue); }
+
+  /* --- Filas de criterio ------------------------------------------------ */
+  .fila { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--borde); }
+  .fila:last-child { border-bottom: 0; }
+  .mark { font: 600 11px ui-monospace, Menlo, monospace; width: 26px; flex: none; padding-top: 2px; }
+  .mark.ok { color: var(--mint); }
+  .mark.no { color: var(--rojo); }
+  .mark.aviso { color: var(--ambar); }
+  .fila .cuerpo { min-width: 0; flex: 1; }
+  .fila .nom { font-size: 13.5px; }
+  .fila .nom.dim { color: var(--tenue); }
+  .fila button.nom {
+    background: none; border: 0; padding: 0; color: inherit; font: inherit;
+    cursor: pointer; text-align: left; border-bottom: 1px dotted var(--borde-claro);
+  }
+  .tag {
+    font: 600 10px ui-monospace, Menlo, monospace; letter-spacing: .1em;
+    text-transform: uppercase; margin-left: 8px; white-space: nowrap;
+  }
+  .tag.redaccion { color: var(--ambar); }
+  .tag.informacion { color: var(--rojo); }
+  .tag.senal { color: var(--ambar); }
+  .ev { font-size: 12px; color: var(--tenue); margin-top: 3px; line-height: 1.45; overflow-wrap: anywhere; }
+  .def { font-size: 12px; color: var(--tenue); margin-top: 6px; padding-left: 10px;
+         border-left: 1px solid var(--borde-claro); line-height: 1.5; }
+  .def i { display: block; margin-top: 3px; color: #5d717b; font-style: normal; font-size: 11px; }
+
+  /* --- Cajas de salida --------------------------------------------------- */
+  .caja { border-radius: var(--radio); padding: 14px; margin-bottom: var(--gap); }
+  .caja.po { border: 1px solid var(--rojo); background: #23110f; }
+  .caja.comp { border: 1px solid var(--ambar); background: #241c0d; }
+  .caja h3 { margin: 0 0 2px; font: 600 10px ui-monospace, Menlo, monospace;
+             letter-spacing: .14em; text-transform: uppercase; }
+  .caja.po h3 { color: var(--rojo); }
+  .caja.comp h3 { color: var(--ambar); }
+  .caja .sub { margin: 4px 0 10px; font-size: 11.5px; color: var(--tenue); }
+  .caja ul { margin: 0; padding-left: 18px; }
+  .caja li { font-size: 13.5px; margin-bottom: 6px; }
+  .mono { font: 13px/1.6 ui-monospace, Menlo, monospace; overflow-wrap: anywhere; }
+  .resumen { border-left: 2px solid var(--teal); padding-left: 12px;
+             margin-bottom: var(--gap); font-size: 14px; }
+
+  /* --- Estados ----------------------------------------------------------- */
+  .vacio {
+    border: 1px dashed var(--borde); border-radius: var(--radio); padding: 40px 20px;
+    text-align: center; color: var(--tenue); font-size: 13.5px;
+  }
+  .err { border: 1px solid var(--rojo); background: #23110f; border-radius: var(--radio);
+         padding: 12px; font-size: 13px; color: #f0b8b3; overflow-wrap: anywhere; }
+  .skel { border: 1px solid var(--borde); border-radius: var(--radio);
+          background: var(--panel); padding: 14px; margin-bottom: var(--gap); }
+  .skel .barra { height: 10px; border-radius: 4px; background: var(--borde); margin-bottom: 10px;
+                 animation: latir 1.2s ease-in-out infinite; }
+  .skel .barra:last-child { margin-bottom: 0; }
+  @keyframes latir { 0%, 100% { opacity: .35; } 50% { opacity: .8; } }
+  @media (prefers-reduced-motion: reduce) { .skel .barra { animation: none; opacity: .5; } }
+  .cargando { font-size: 12.5px; color: var(--tenue); margin-bottom: 10px; }
+
+  footer { margin-top: 30px; padding-top: 16px; border-top: 1px solid var(--borde);
+           font-size: 11.5px; color: #4d5f68; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Objetivo específico 2</p>
+    <h1>Compuerta de calidad para historias de usuario</h1>
+    <p>Antes de generar un escenario Gherkin, el insumo se evalúa contra una rúbrica acotada
+       a una sola pregunta: si este criterio se viola, ¿todavía puedo derivar un
+       Given–When–Then ejecutable?</p>
+  </header>
+
+  <div class="cols">
+    <div class="panel-entrada">
+      <div class="presets" id="presets"></div>
+      <div class="campo">
+        <label for="hu">Historia de usuario</label>
+        <textarea id="hu" rows="3"></textarea>
+      </div>
+      <div class="campo">
+        <label for="ac">Criterios de aceptación</label>
+        <textarea id="ac" rows="8"></textarea>
+      </div>
+      <button id="run">Evaluar historia</button>
+      <div id="err" style="margin-top:14px" role="alert"></div>
+    </div>
+    <div id="out" aria-live="polite">
+      <div class="vacio">Elige un ejemplo o escribe una historia, y evalúala para ver cómo se enruta.</div>
+    </div>
+  </div>
+
+  <footer>
+    Rúbrica: subconjunto de QUS (Lucassen et al., 2016) acotado por derivabilidad ·
+    extensión para criterios de aceptación heredada de ISO/IEC/IEEE 29148 y de las guías
+    G.AC de Ferreira et al. (2022) · no-sobre-generación derivada de Zhang et al. (2024) · requirement smells según Zakeri-Nasrabadi y Parsa (2024).
+    <span id="modelo"></span>
+  </footer>
+</div>
+
+<script>
+const PRESETS = [
+  { et: "Falta información", pi: "La regla de negocio no está escrita",
+    hu: "Como usuario quiero poder aplicar cupones de descuento en el carrito para ahorrar dinero y también quiero ver el historial de mis cupones usados.",
+    ac: "- El cupón se aplica al total.\n- Si el cupón no es válido se muestra un error." },
+  { et: "Falta redacción", pi: "La información está, mal expresada",
+    hu: "Como usuario, el sistema debe permitir cancelar un pedido, quiero cancelar pedidos, para no recibir productos que ya no necesito.",
+    ac: "- Se puede cancelar si no ha sido enviado.\n- Si ya fue enviado no se puede cancelar y sale mensaje." },
+  { et: "Historia sana", pi: "Debería pasar las dos compuertas",
+    hu: "Como cliente registrado quiero aplicar un cupón de descuento en el carrito para reducir el total antes de pagar.",
+    ac: "- Dado un carrito con al menos un producto y un cupón vigente, cuando el cliente ingresa el código, entonces el total se reduce según el porcentaje del cupón.\n- Dado un cupón expirado, cuando el cliente lo ingresa, entonces el sistema muestra \"Cupón expirado\" y el total no cambia.\n- Dado un cupón ya utilizado por ese cliente, cuando lo ingresa, entonces el sistema muestra \"Cupón ya utilizado\" y el total no cambia." }
+];
+
+const LANES = [
+  { id: "rechazo_redaccion", cls: "redaccion", t: "Deficiencia de redacción", d: "La información está. El modelo reescribe y propone." },
+  { id: "rechazo_informacion", cls: "informacion", t: "Deficiencia de información", d: "Falta negocio. Vuelve al PO. El modelo no completa." },
+  { id: "aprobado", cls: "aprobado", t: "Aprobado", d: "Pasa a la generación de escenarios Gherkin." }
+];
+
+// Los únicos chequeos de la compuerta 1 que detienen el flujo. El resto son
+// señales que viajan al prompt de la compuerta 2. Esto duplica gate1.bloquea();
+// lo correcto sería que /api/evaluar marcara cada chequeo como bloqueante.
+const DUROS = ["well_formed", "ac_present"];
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let RUBRICA = {};   // id -> { definicion, fuente }
+
+/* --- Ejemplos precargados ------------------------------------------------ */
+$("#presets").innerHTML = PRESETS.map((p, i) =>
+  `<button type="button" data-i="${i}" aria-pressed="false"><b>${esc(p.et)}</b><span>${esc(p.pi)}</span></button>`).join("");
+
+$("#presets").onclick = e => {
+  const b = e.target.closest("button"); if (!b) return;
+  const p = PRESETS[b.dataset.i];
+  $("#hu").value = p.hu; $("#ac").value = p.ac;
+  $("#presets").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  $("#out").innerHTML = '<div class="vacio">Listo para evaluar.</div>';
+  $("#err").innerHTML = "";
+};
+$("#presets").querySelector("button").click();
+
+/* --- Estado del servicio y rúbrica --------------------------------------- */
+fetch("/api/salud").then(r => r.json())
+  .then(d => {
+    $("#modelo").textContent = " · Modelo: " + d.modelo + " · temperatura " + d.temperatura;
+    if (d.problema) {
+      $("#err").innerHTML = `<div class="err"><b>Falta configuración.</b><br>${esc(d.problema)}</div>`;
+    }
+  })
+  .catch(() => {});
+
+fetch("/api/rubrica").then(r => r.json())
+  .then(d => {
+    [...(d.historia || []), ...(d.criterios_aceptacion || [])]
+      .forEach(c => { RUBRICA[c.id] = { definicion: c.definicion, fuente: c.fuente }; });
+  })
+  .catch(() => {});
+
+/* --- Render -------------------------------------------------------------- */
+function filas(items, gate) {
+  return items.map((i, n) => {
+    const falla = i.estado === "fail" || i.passed === false;
+    const blando = gate === 1 && falla && !DUROS.includes(i.id);
+    const marca = !falla ? ["ok", "OK"] : blando ? ["aviso", "!"] : ["no", "X"];
+
+    const tipo = falla && i.tipo && i.tipo !== "null"
+      ? `<span class="tag ${esc(i.tipo)}">${esc(i.tipo)}</span>` : "";
+    const senal = blando ? `<span class="tag senal">señal</span>` : "";
+    const ev = falla && i.evidencia ? `<div class="ev">${esc(i.evidencia)}</div>` : "";
+
+    const r = RUBRICA[i.id];
+    const idDef = `def-${gate}-${n}`;
+    const nombre = r
+      ? `<button type="button" class="nom ${falla ? "" : "dim"}" data-def="${idDef}" aria-expanded="false" aria-controls="${idDef}">${esc(i.label || i.id)}</button>`
+      : `<span class="nom ${falla ? "" : "dim"}">${esc(i.label || i.id)}</span>`;
+    const def = r
+      ? `<div class="def" id="${idDef}" hidden>${esc(r.definicion)}<i>${esc(r.fuente)}</i></div>` : "";
+
+    return `<div class="fila">
+      <span class="mark ${marca[0]}" aria-hidden="true">${marca[1]}</span>
+      <div class="cuerpo">${nombre}${tipo}${senal}${ev}${def}</div>
+    </div>`;
+  }).join("");
+}
+
+function bloque(cls, titulo, chip, sub, cuerpo) {
+  return `<div class="bloque ${cls}">
+    <div class="cab"><h3>${esc(titulo)}</h3><span class="chip">${esc(chip)}</span></div>
+    <p class="sub">${esc(sub)}</p>${cuerpo}</div>`;
+}
+
+/* Los smells son señal determinista, nunca veredicto: se muestran aparte y sin
+   marca de OK/falla, para que no se lean como un chequeo más de la rúbrica. */
+function unidad(u, previa) {
+  const cl = (u.claridad ?? 1).toFixed(2);
+  let delta = "";
+  if (previa) {
+    const dif = (u.claridad ?? 1) - (previa.claridad ?? 1);
+    if (Math.abs(dif) >= 0.005)
+      delta = `<span class="delta ${dif > 0 ? "mejor" : "peor"}">${dif > 0 ? "+" : ""}${dif.toFixed(2)}</span>`;
+  }
+  const hall = (u.hallazgos || []).length
+    ? `<div class="hall">${u.hallazgos.map(x => {
+        // Se sigue reportando, pero tachado: no entró en C(R) para este tipo
+        // de unidad. En criterios, la negación es la forma normal de un
+        // camino de falla, que es justo lo que la rúbrica pide.
+        const no = x.cuenta_para_claridad === false;
+        const t = no ? `${x.smell} — no cuenta para la claridad en un criterio` : x.smell;
+        return `<span class="${no ? "nocuenta" : ""}" title="${esc(t)}">${esc(x.palabra)} · ${esc(x.etiqueta)}</span>`;
+      }).join("")}</div>`
+    : "";
+  return `<div class="unidad">
+    <div class="cab2">
+      <span class="txt">${esc(u.tipo)} — ${esc(u.texto)}</span>
+      <span class="nums">claridad <b>${cl}</b>${delta} · ${u.palabras} pal.</span>
+    </div>${hall}</div>`;
+}
+
+function bloqueSmells(sm) {
+  if (!sm || !sm.unidades?.length) return "";
+  let cuerpo = sm.unidades.map(u => unidad(u)).join("");
+
+  if (sm.unidades_reescritas?.length) {
+    cuerpo += `<p class="sub" style="margin:14px 0 0">Después de la complementación</p>`;
+    // El delta se compara contra la unidad original de la misma posición; la
+    // claridad sube sola si el texto se acorta, por eso van las palabras al lado.
+    cuerpo += sm.unidades_reescritas.map((u, i) => unidad(u, sm.unidades[i])).join("");
+  }
+
+  if (sm.terminos_agregados?.length)
+    cuerpo += `<p class="sub" style="margin:14px 0 0">Términos que la reescritura introdujo y no estaban en el original</p>
+      <div class="terms">${sm.terminos_agregados.map(t => `<code>${esc(t)}</code>`).join("")}</div>`;
+  if (sm.terminos_quitados?.length)
+    cuerpo += `<p class="sub" style="margin:12px 0 0">Términos que desaparecieron</p>
+      <div class="terms quit">${sm.terminos_quitados.map(t => `<code>${esc(t)}</code>`).join("")}</div>`;
+
+  return bloque("g1", "Requirement smells — claridad por unidad", "determinista",
+    "Reglas sobre POS tagging, sin modelo. Zakeri-Nasrabadi y Parsa (2024). Es señal para el revisor, no un veredicto: la precisión reportada del método es 0.42.",
+    cuerpo);
+}
+
+function render(d) {
+  let h = '<div class="lanes">' + LANES.map(l =>
+    `<div class="lane ${l.cls} ${d.veredicto === l.id ? "on" : ""}">
+       <b>${esc(l.t)}</b><span>${esc(l.d)}</span></div>`).join("") + "</div>";
+
+  if (d.resumen) h += `<div class="resumen">${esc(d.resumen)}</div>`;
+
+  if (d.gate1?.length) h += bloque("g1", "Compuerta 1 — estructural", "determinista",
+    "Expresiones regulares en Python, sin invocar el modelo. Solo detiene el flujo si falta el rol o faltan los criterios; el resto viaja como señal a la compuerta 2.",
+    filas(d.gate1, 1));
+
+  if (d.gate2_historia?.length) h += bloque("g2", "Compuerta 2 — nivel historia", "modelo",
+    "Subconjunto de QUS acotado por derivabilidad. Toca un criterio para ver su definición y su fuente.",
+    filas(d.gate2_historia, 2));
+
+  if (d.gate2_criterios?.length) h += bloque("g2", "Compuerta 2 — criterios de aceptación", "modelo",
+    "Extensión propia: lo que QUS no cubre.",
+    filas(d.gate2_criterios, 3));
+
+  if (d.preguntas_po?.length) h += `<div class="caja po"><h3>Preguntas para el Product Owner</h3>
+    <p class="sub">El modelo se detiene aquí a propósito. Completar esto sin el negocio sería inventar criterios de aceptación.</p>
+    <ul>${d.preguntas_po.map(q => `<li>${esc(q)}</li>`).join("")}</ul></div>`;
+
+  h += bloqueSmells(d.smells);
+
+  const c = d.complementacion;
+  if (c && c.historia) {
+    h += `<div class="caja comp"><h3>Complementación propuesta</h3>
+      <p class="sub">Reescrita solo con información ya presente. Requiere aprobación de QA o del PO.</p>
+      <p class="mono">${esc(c.historia)}</p>`;
+    if (c.criterios?.length) h += `<ul class="mono">${c.criterios.map(x => `<li>${esc(x)}</li>`).join("")}</ul>`;
+    if (c.cambios?.length) h += `<p class="sub" style="margin-top:10px">Qué cambió</p>
+      <ul>${c.cambios.map(x => `<li style="font-size:12.5px;color:var(--tenue)">${esc(x)}</li>`).join("")}</ul>`;
+    h += "</div>";
+  }
+  $("#out").innerHTML = h;
+}
+
+/* Definiciones desplegables. Se usa un botón y no el atributo title porque
+   title no existe en pantallas táctiles ni con teclado. */
+$("#out").addEventListener("click", e => {
+  const b = e.target.closest("button[data-def]"); if (!b) return;
+  const caja = document.getElementById(b.dataset.def); if (!caja) return;
+  const abierto = !caja.hidden;
+  caja.hidden = abierto;
+  b.setAttribute("aria-expanded", String(!abierto));
+});
+
+/* --- Evaluación ---------------------------------------------------------- */
+const ESQUELETO = `
+  <p class="cargando">Recorriendo la rúbrica. La llamada al modelo tarda unos segundos.</p>
+  <div class="skel"><div class="barra" style="width:70%"></div><div class="barra" style="width:92%"></div><div class="barra" style="width:55%"></div></div>
+  <div class="skel"><div class="barra" style="width:85%"></div><div class="barra" style="width:60%"></div><div class="barra" style="width:75%"></div></div>`;
+
+$("#run").onclick = async () => {
+  const historia = $("#hu").value.trim();
+  if (!historia) {
+    $("#err").innerHTML = '<div class="err">Escribe una historia de usuario.</div>';
+    $("#hu").focus();
+    return;
+  }
+  $("#err").innerHTML = "";
+  $("#run").disabled = true; $("#run").textContent = "Evaluando…";
+  $("#out").setAttribute("aria-busy", "true");
+  $("#out").innerHTML = ESQUELETO;
+  try {
+    const r = await fetch("/api/evaluar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ historia, criterios: $("#ac").value })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || "Error del servidor");
+    render(d);
+  } catch (e) {
+    $("#out").innerHTML = '<div class="vacio">Sin resultado.</div>';
+    $("#err").innerHTML = `<div class="err">${esc(e.message)}</div>`;
+  } finally {
+    $("#run").disabled = false; $("#run").textContent = "Evaluar historia";
+    $("#out").setAttribute("aria-busy", "false");
+  }
+};
+</script>
+</body>
+</html>

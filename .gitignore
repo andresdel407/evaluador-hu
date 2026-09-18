@@ -1,0 +1,35 @@
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+*.backup
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# spaCy y modelos descargados
+*.whl
+models/
+
+# Datos de experimentos (decidí caso por caso qué versionar)
+resultados/*.csv
+!resultados/.gitkeep
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Docker
+docker-compose.override.yml

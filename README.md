@@ -126,8 +126,13 @@ Documentación interactiva en `/docs`.
 
 - La compuerta 1 usa patrones para español e inglés. Historias en otros idiomas
   fallarán los chequeos estructurales aunque estén bien escritas.
-- El criterio `conflict_free` se evalúa dentro de una sola historia. QUS lo define
-  sobre el conjunto del backlog; esa versión requeriría comparación entre historias.
+- `internally_consistent` se evalúa dentro de una sola historia. QUS define su
+  criterio de conflictos sobre el conjunto del backlog; esa versión requeriría
+  comparación entre historias, y el nombre `conflict_free` queda reservado para
+  cuando el sistema vea el backlog completo.
+- `aligned` es aporte propio y no tiene respaldo en la literatura revisada. Es el
+  criterio que más necesita validación contra juicio humano junto con
+  `path_coverage`.
 - No hay persistencia. Cada evaluación es independiente. Para los experimentos de
   validación habrá que agregar almacenamiento de resultados.
 - La cobertura de caminos depende de que el modelo reconozca qué caminos son

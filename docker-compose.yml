@@ -1,0 +1,13 @@
+services:
+  evaluador:
+    build: .
+    container_name: evaluador-hu
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # Montaje en caliente: editar la rúbrica y recargar sin reconstruir.
+      - ./app:/srv/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
